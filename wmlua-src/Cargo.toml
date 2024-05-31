@@ -16,4 +16,7 @@ keywords = ["wmlua"]
 cc = "1.0.54"
 
 [features]
-default = ["lua54"]
+lua54=[]
+lua53=[]
+lua52=[]
+lua51=[]

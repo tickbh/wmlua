@@ -252,14 +252,16 @@ impl Artifacts {
 }
 
 fn main() {
+    #[allow(unused_variables)]
+    let version = Lua51;
     #[cfg(feature = "lua51")]
-    let version = wmlua_src::Lua51;
+    let version = Lua51;
     #[cfg(feature = "lua52")]
-    let version = wmlua_src::Lua52;
+    let version = Lua52;
     #[cfg(feature = "lua53")]
-    let version = wmlua_src::Lua53;
+    let version = Lua53;
     #[cfg(feature = "lua54")]
-    let version = wmlua_src::Lua54;
+    let version = Lua54;
 
     Build::new().build(version);
 }

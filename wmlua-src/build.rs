@@ -147,10 +147,10 @@ impl Build {
         }
 
         let lib_name = match version {
-            Lua51 => "lua5.1",
-            Lua52 => "lua5.2",
-            Lua53 => "lua5.3",
-            Lua54 => "lua5.4",
+            Lua51 => "liblua",
+            Lua52 => "liblua",
+            Lua53 => "liblua",
+            Lua54 => "liblua",
         };
 
         config
@@ -263,5 +263,6 @@ fn main() {
     #[cfg(feature = "lua54")]
     let version = Lua54;
 
-    Build::new().build(version);
+    let arti = Build::new().build(version);
+    arti.print_cargo_metadata();
 }

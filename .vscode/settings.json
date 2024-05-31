@@ -1,0 +1,6 @@
+{
+    "rust-analyzer.cargo.buildScripts.overrideCommand": null,
+    "rust-analyzer.cargo.features": [
+        "lua51"
+    ]
+}

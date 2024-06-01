@@ -1,8 +1,6 @@
-#![crate_type = "staticlib"]
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-mod luajit_build;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Version {
@@ -277,6 +275,8 @@ fn main() {
 }
 
 
+#[cfg(any(feature = "luajit"))]
+mod luajit_build;
 #[cfg(any(feature = "luajit"))]
 fn main() {
     let arti = luajit_build::Build::new().lua52compat(cfg!(feature = "luajit52")).build();

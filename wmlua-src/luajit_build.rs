@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -243,14 +244,14 @@ impl Build {
         }
         fs::copy(
             build_dir.join("src").join("lua51.lib"),
-            lib_dir.join("luajit.lib"),
+            lib_dir.join("liblua51.lib"),
         )
         .unwrap();
 
         Artifacts {
             lib_dir,
             include_dir,
-            libs: vec!["luajit".to_string()],
+            libs: vec!["lua51".to_string()],
         }
     }
 
@@ -259,11 +260,11 @@ impl Build {
         let status = command.status().unwrap();
         if !status.success() {
             panic!(
-                "
-Error {}:
-    Command: {:?}
-    Exit status: {}
-    ",
+            "
+                Error {}:
+                Command: {:?}
+                Exit status: {}
+            ",
                 desc, command, status
             );
         }

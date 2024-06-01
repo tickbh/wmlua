@@ -6,7 +6,7 @@ fn main() {
     let val = r"
         local start = os.time();
         local sum = 0;
-        for i = 0, 1000000000 do
+        for i = 0, 10000000000 do
             sum = sum + i;
         end
         print(os.time() - start);

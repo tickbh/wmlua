@@ -2,6 +2,7 @@
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
+mod luajit_build;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Version {
@@ -257,8 +258,10 @@ impl Artifacts {
     }
 }
 
+#[cfg(any(feature = "lua51", feature = "lua52", feature = "lua53", feature = "lua54"))]
 fn main() {
     #[allow(unused_variables)]
+
     // let version = Lua51;
     #[cfg(feature = "lua51")]
     let version = Lua51;
@@ -270,5 +273,12 @@ fn main() {
     let version = Lua54;
 
     let arti = Build::new().build(version);
+    arti.print_cargo_metadata();
+}
+
+
+#[cfg(any(feature = "luajit"))]
+fn main() {
+    let arti = luajit_build::Build::new().lua52compat(cfg!(feature = "luajit52")).build();
     arti.print_cargo_metadata();
 }

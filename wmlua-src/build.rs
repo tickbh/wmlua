@@ -1,4 +1,4 @@
-
+#![crate_type = "staticlib"]
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -53,7 +53,10 @@ impl Build {
         let target = &self.target.as_ref().expect("TARGET not set")[..];
         let host = &self.host.as_ref().expect("HOST not set")[..];
         let out_dir = self.out_dir.as_ref().expect("OUT_DIR not set");
-        let lib_dir = out_dir.join("lib");
+        let lib_dir = out_dir.clone();
+        // let lib_dir = out_dir.join("lib");
+        // let mut lib_dir = PathBuf::new();
+        // lib_dir.push("lib");
         let include_dir = out_dir.join("include");
 
         let source_dir_base = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -147,11 +150,12 @@ impl Build {
         }
 
         let lib_name = match version {
-            Lua51 => "liblua",
-            Lua52 => "liblua",
-            Lua53 => "liblua",
-            Lua54 => "liblua",
+            Lua51 => "lua51",
+            Lua52 => "lua52",
+            Lua53 => "lua53",
+            Lua54 => "lua54",
         };
+        // let lib_name = "lua";
 
         config
             .include(&source_dir)
@@ -214,7 +218,7 @@ impl Build {
             }
         }
 
-        config.out_dir(&lib_dir).compile(lib_name);
+        config.out_dir(out_dir).compile(lib_name);
 
         for f in &["lauxlib.h", "lua.h", "luaconf.h", "lualib.h"] {
             fs::copy(source_dir.join(f), include_dir.join(f)).unwrap();
@@ -242,6 +246,8 @@ impl Artifacts {
     }
 
     pub fn print_cargo_metadata(&self) {
+        println!("cargo:rerun-if-changed=build");
+
         println!("cargo:rustc-link-search=native={}", self.lib_dir.display());
         for lib in self.libs.iter() {
             println!("cargo:rustc-link-lib=static={}", lib);
@@ -253,7 +259,7 @@ impl Artifacts {
 
 fn main() {
     #[allow(unused_variables)]
-    let version = Lua51;
+    // let version = Lua51;
     #[cfg(feature = "lua51")]
     let version = Lua51;
     #[cfg(feature = "lua52")]

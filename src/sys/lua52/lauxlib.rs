@@ -14,7 +14,7 @@ pub struct luaL_Reg {
     pub func: lua_CFunction,
 }
 
-#[cfg_attr(all(windows, raw_dylib), link(name = "lua52", kind = "raw-dylib"))]
+#[link(name = "lua52", kind="static")]
 extern "C" {
     pub fn luaL_checkversion_(L: *mut lua_State, ver: lua_Number);
 
@@ -66,7 +66,7 @@ extern "C" {
 pub const LUA_NOREF: c_int = -2;
 pub const LUA_REFNIL: c_int = -1;
 
-#[cfg_attr(all(windows, raw_dylib), link(name = "lua52", kind = "raw-dylib"))]
+#[link(name = "lua52", kind="static")]
 extern "C" {
     pub fn luaL_ref(L: *mut lua_State, t: c_int) -> c_int;
     pub fn luaL_unref(L: *mut lua_State, t: c_int, r#ref: c_int);
@@ -80,7 +80,7 @@ pub unsafe fn luaL_loadfile(L: *mut lua_State, f: *const c_char) -> c_int {
     luaL_loadfilex(L, f, ptr::null())
 }
 
-#[cfg_attr(all(windows, raw_dylib), link(name = "lua52", kind = "raw-dylib"))]
+#[link(name = "lua52", kind="static")]
 extern "C" {
     pub fn luaL_loadbufferx(
         L: *mut lua_State,

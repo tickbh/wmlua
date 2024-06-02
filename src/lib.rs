@@ -23,11 +23,14 @@ pub mod userdata;
 pub mod tuples;
 pub mod rust_tables;
 mod hotfix;
+mod object;
 
 pub use functions::{function0, function1, function2, function3, function4, function5, function6, function7, function8, function9, function10, Function};
-pub use userdata::{push_userdata, push_lightuserdata, read_userdata, LuaStruct, NewStruct};
+pub use userdata::{push_userdata, push_lightuserdata, read_userdata};
 pub use lua_tables::LuaTable;
 pub use values::RawString;
+pub use object::LuaObject;
+
 pub struct Lua {
     lua: *mut lua_State,
     own: bool,

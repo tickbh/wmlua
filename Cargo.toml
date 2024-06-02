@@ -12,6 +12,7 @@ keywords = ["wmlua"]
 
 [dependencies]
 libc = "0.2.1"
+
 ffi = { package = "wmlua-src", version = "0.1.0", path = "wmlua-src" }
 
 [workspace]

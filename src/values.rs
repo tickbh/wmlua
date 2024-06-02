@@ -13,6 +13,13 @@ macro_rules! integer_impl(
             }
         }
 
+        impl LuaPush for &$t {
+            fn push_to_lua(self, lua: *mut lua_State) -> i32 {
+                unsafe { sys::lua_pushinteger(lua, *self as sys::lua_Integer) };
+                1
+            }
+        }
+
         impl LuaRead for $t {
             fn lua_read_with_pop_impl(lua: *mut lua_State, index: i32, _pop: i32) -> Option<$t> {
                 let mut success = 0;
@@ -36,11 +43,19 @@ integer_impl!(u32);
 integer_impl!(u64);
 integer_impl!(usize);
 
+
 macro_rules! numeric_impl(
     ($t:ident) => (
         impl LuaPush for $t {
             fn push_to_lua(self, lua: *mut lua_State) -> i32 {
                 unsafe { sys::lua_pushnumber(lua, self as f64) };
+                1
+            }
+        }
+
+        impl LuaPush for &$t {
+            fn push_to_lua(self, lua: *mut lua_State) -> i32 {
+                unsafe { sys::lua_pushnumber(lua, *self as f64) };
                 1
             }
         }
@@ -61,7 +76,8 @@ macro_rules! numeric_impl(
 numeric_impl!(f32);
 numeric_impl!(f64);
 
-impl LuaPush for String {
+
+impl LuaPush for &String {
     fn push_to_lua(self, lua: *mut lua_State) -> i32 {
         if let Some(value) = CString::new(&self[..]).ok() {
             unsafe { sys::lua_pushstring(lua, value.as_ptr()) };
@@ -71,6 +87,12 @@ impl LuaPush for String {
             unsafe { sys::lua_pushstring(lua, value.as_ptr()) };
             1
         }
+    }
+}
+
+impl LuaPush for String {
+    fn push_to_lua(self, lua: *mut lua_State) -> i32 {
+        (&self).push_to_lua(lua)
     }
 }
 
@@ -106,6 +128,13 @@ impl LuaPush for bool {
     }
 }
 
+impl LuaPush for &bool {
+    fn push_to_lua(self, lua: *mut lua_State) -> i32 {
+        unsafe { sys::lua_pushboolean(lua, self.clone() as libc::c_int) };
+        1
+    }
+}
+
 impl LuaRead for bool {
     fn lua_read_with_pop_impl(lua: *mut lua_State, index: i32, _pop: i32) -> Option<bool> {
         if unsafe { !sys::lua_isboolean(lua, index) } {
@@ -117,6 +146,13 @@ impl LuaRead for bool {
 }
 
 impl LuaPush for () {
+    fn push_to_lua(self, lua: *mut lua_State) -> i32 {
+        unsafe { sys::lua_pushnil(lua) };
+        1
+    }
+}
+
+impl LuaPush for &() {
     fn push_to_lua(self, lua: *mut lua_State) -> i32 {
         unsafe { sys::lua_pushnil(lua) };
         1

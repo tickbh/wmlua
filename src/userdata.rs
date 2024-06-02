@@ -5,8 +5,8 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ptr;
 
-use libc;
-use crate::{Lua, LuaPush, LuaRead, LuaTable, sys, lua_State};
+use libc::{self, c_char};
+use crate::{lua_State, lua_getmetatable, sys, Lua, LuaPush, LuaRead, LuaTable};
 
 // Called when an object inside Lua is being dropped.
 #[inline]
@@ -20,15 +20,15 @@ extern "C" fn destructor_wrapper<T>(lua: *mut sys::lua_State) -> libc::c_int {
 
 extern "C" fn constructor_wrapper<T>(lua: *mut sys::lua_State) -> libc::c_int
 where
-    T: NewStruct + Any,
+    T: Default + Any,
 {
-    let t = T::new();
+    let t = T::default();
     let lua_data_raw =
         unsafe { sys::lua_newuserdata(lua, mem::size_of::<T>() as libc::size_t) };
     unsafe {
         ptr::write(lua_data_raw as *mut _, t);
     }
-    let typeid = CString::new(T::name()).unwrap();
+    let typeid = CString::new(format!("{:?}", TypeId::of::<T>())).unwrap();
     unsafe {
         sys::lua_getglobal(lua, typeid.as_ptr());
         sys::lua_setmetatable(lua, -2);
@@ -41,11 +41,12 @@ where
 // in lua we get the object, we must free the memory
 extern "C" fn constructor_light_wrapper<T>(lua: *mut sys::lua_State) -> libc::c_int
 where
-    T: NewStruct + Any,
+    T: Default + Any,
 {
-    let t = Box::into_raw(Box::new(T::new()));
+    let t = Box::into_raw(Box::new(T::default()));
     push_lightuserdata(unsafe { &mut *t }, lua, |_| {});
-    let typeid = CString::new(T::name()).unwrap();
+
+    let typeid = CString::new(format!("{:?}", TypeId::of::<T>())).unwrap();
     unsafe {
         sys::lua_getglobal(lua, typeid.as_ptr());
         sys::lua_setmetatable(lua, -2);
@@ -158,6 +159,9 @@ where
 {
     unsafe {
         let expected_typeid = format!("{:?}", TypeId::of::<T>());
+        if sys::lua_isuserdata(lua, index) == 0 {
+            return None;
+        }
         let data_ptr = sys::lua_touserdata(lua, index);
         if data_ptr.is_null() {
             return None;
@@ -177,141 +181,5 @@ where
         }
         sys::lua_pop(lua, 2);
         Some(mem::transmute(data_ptr))
-    }
-}
-
-pub trait NewStruct {
-    fn new() -> Self;
-    fn name() -> &'static str;
-}
-
-pub struct LuaStruct<T> {
-    lua: *mut lua_State,
-    light: bool,
-    marker: PhantomData<T>,
-}
-
-impl<T> LuaStruct<T>
-where
-    T: NewStruct + Any,
-{
-    pub fn new(lua: *mut lua_State) -> LuaStruct<T> {
-        LuaStruct {
-            lua: lua,
-            light: false,
-            marker: PhantomData,
-        }
-    }
-
-    pub fn new_light(lua: *mut lua_State) -> LuaStruct<T> {
-        LuaStruct {
-            lua: lua,
-            light: true,
-            marker: PhantomData,
-        }
-    }
-
-    pub fn ensure_matetable(&mut self) {
-        let name = T::name();
-        let mut lua = Lua::from_existing_state(self.lua, false);
-        match lua.query::<LuaTable, _>(name) {
-            Some(_) => {}
-            None => unsafe {
-                sys::lua_newtable(self.lua);
-
-                let typeid = format!("{:?}", TypeId::of::<T>());
-                // index "__name" corresponds to the hash of the TypeId of T
-                "__typeid".push_to_lua(self.lua);
-                typeid.push_to_lua(self.lua);
-                sys::lua_settable(self.lua, -3);
-
-                // index "__gc" call the object's destructor
-                if !self.light {
-                    "__gc".push_to_lua(self.lua);
-
-                    sys::lua_pushcfunction(self.lua, destructor_wrapper::<T>);
-
-                    sys::lua_settable(self.lua, -3);
-                }
-
-                "__index".push_to_lua(self.lua);
-                sys::lua_newtable(self.lua);
-                sys::lua_rawset(self.lua, -3);
-
-                let name = CString::new(name).unwrap();
-                sys::lua_setglobal(self.lua, name.as_ptr());
-            },
-        }
-    }
-
-    pub fn create(&mut self) -> &mut LuaStruct<T> {
-        self.ensure_matetable();
-        unsafe {
-            let typeid = CString::new(T::name()).unwrap();
-            sys::lua_getglobal(self.lua, typeid.as_ptr());
-            if sys::lua_istable(self.lua, -1) {
-                sys::lua_newtable(self.lua);
-                "__call".push_to_lua(self.lua);
-
-                if self.light {
-                    sys::lua_pushcfunction(self.lua, constructor_light_wrapper::<T>);
-                    sys::lua_settable(self.lua, -3);
-                } else {
-                    sys::lua_pushcfunction(self.lua, constructor_wrapper::<T>);
-                    sys::lua_settable(self.lua, -3);
-                }
-
-                sys::lua_setmetatable(self.lua, -2);
-            }
-            sys::lua_pop(self.lua, 1);
-        }
-        self
-    }
-
-    pub fn def<P>(&mut self, name: &str, param: P) -> &mut LuaStruct<T>
-    where
-        P: LuaPush,
-    {
-        let tname = T::name();
-        let mut lua = Lua::from_existing_state(self.lua, false);
-        match lua.query::<LuaTable, _>(tname) {
-            Some(mut table) => {
-                match table.query::<LuaTable, _>("__index") {
-                    Some(mut index) => {
-                        index.set(name, param);
-                    }
-                    None => {
-                        let mut index = table.empty_table("__index");
-                        index.set(name, param);
-                    }
-                };
-            }
-            None => (),
-        };
-        self
-    }
-
-    pub fn register(
-        &mut self,
-        name: &str,
-        func: extern "C" fn(*mut sys::lua_State) -> libc::c_int,
-    ) -> &mut LuaStruct<T> {
-        let tname = T::name();
-        let mut lua = Lua::from_existing_state(self.lua, false);
-        match lua.query::<LuaTable, _>(tname) {
-            Some(mut table) => {
-                match table.query::<LuaTable, _>("__index") {
-                    Some(mut index) => {
-                        index.register(name, func);
-                    }
-                    None => {
-                        let mut index = table.empty_table("__index");
-                        index.register(name, func);
-                    }
-                };
-            }
-            None => (),
-        };
-        self
     }
 }

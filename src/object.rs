@@ -55,32 +55,38 @@ where
                 return 0;
             }
             lua_pushvalue(lua, 1);
-            lua_pushvalue(lua, 2);
+            lua_call(lua, 1, 1);
+            1
+        }
+    } else {
+        0
+    }
+}
+
+
+extern "C" fn newindex_metatable<'a, T>(lua: *mut sys::lua_State) -> libc::c_int
+where
+    T: Default + Any,
+    &'a mut T: LuaRead,
+{
+    println!("newindex_metatable!!!!!!!!!!!!!!!!");
+    if let Some(mut key) = String::lua_read_with_pop(lua, 2, 0) {
+        key.push_str("__set");
+        let typeid = CString::new(format!("{:?}_new", TypeId::of::<T>())).unwrap();
+        unsafe {
+            sys::lua_getglobal(lua, typeid.as_ptr());
+            let t = lua_getfield(lua, -1, key.as_ptr() as *const i8);
+            if t != sys::LUA_TFUNCTION {
+                return 0;
+            }
+            lua_pushvalue(lua, 1);
+            lua_pushvalue(lua, 3);
             lua_call(lua, 2, 1);
             1
         }
     } else {
         0
     }
-    // let key: Option<String> = LuaRead::lua_read_with_pop(lua, 2, 0);
-
-
-    // let val: Option<String> = LuaRead::lua_read_with_pop(lua, 0, 0);
-    // println!("val = {:?}", key);
-    // let key = 
-    // let t = T::default();
-    // let lua_data_raw =
-    //     unsafe { sys::lua_newuserdata(lua, mem::size_of::<T>() as libc::size_t) };
-    // unsafe {
-    //     ptr::write(lua_data_raw as *mut _, t);
-    // }
-    // let typeid = CString::new(format!("{:?}", TypeId::of::<T>())).unwrap();
-    // unsafe {
-    //     sys::lua_getglobal(lua, typeid.as_ptr());
-    //     sys::lua_setmetatable(lua, -2);
-    // }
-    // key.unwrap_or("xxx".to_string()).push_to_lua(lua);
-    // 1
 }
 
 // constructor direct create light object,
@@ -164,7 +170,7 @@ where
                 sys::lua_rawset(self.lua, -3);
 
                 "__newindex".push_to_lua(self.lua);
-                sys::lua_newtable(self.lua);
+                sys::lua_pushcfunction(self.lua, newindex_metatable::<T>);
                 sys::lua_rawset(self.lua, -3);
 
                 sys::lua_setglobal(self.lua, typeid.as_ptr() as *const c_char);
@@ -218,13 +224,7 @@ where
     where
         P: LuaPush,
     {
-        // let x = Box::new(param) ;
         let typeid = format!("{:?}_new", TypeId::of::<T>());
-        // let name = CString::new(typeid.to_string()).unwrap();
-        // unsafe {
-        //     sys::lua_getglobal(self.lua, name.as_ptr());
-        //     lua_getmetatable(self.lua, -1);
-        // }
         let mut lua = Lua::from_existing_state(self.lua, false);
         match lua.query::<LuaTable, _>(typeid) {
             Some(mut table) => {
@@ -239,23 +239,33 @@ where
     where
         P: LuaPush,
     {
-        let typeid = format!("{:?}", TypeId::of::<T>());
+        let typeid = format!("{:?}_new", TypeId::of::<T>());
         let mut lua = Lua::from_existing_state(self.lua, false);
         match lua.query::<LuaTable, _>(typeid) {
             Some(mut table) => {
-                match table.query::<LuaTable, _>("__newindex") {
-                    Some(mut index) => {
-                        index.set(name, param);
-                    }
-                    None => {
-                        let mut index = table.empty_table("__newindex");
-                        index.set(name, param);
-                    }
-                };
+                table.set(format!("{}__set", name), param);
             }
             None => (),
         };
         self
+
+        // let typeid = format!("{:?}", TypeId::of::<T>());
+        // let mut lua = Lua::from_existing_state(self.lua, false);
+        // match lua.query::<LuaTable, _>(typeid) {
+        //     Some(mut table) => {
+        //         match table.query::<LuaTable, _>("__newindex") {
+        //             Some(mut index) => {
+        //                 index.set(name, param);
+        //             }
+        //             None => {
+        //                 let mut index = table.empty_table("__newindex");
+        //                 index.set(name, param);
+        //             }
+        //         };
+        //     }
+        //     None => (),
+        // };
+        // self
     }
 
     pub fn def<P>(&mut self, name: &str, param: P) -> &mut LuaObject<'a, T>
@@ -310,6 +320,6 @@ where
 macro_rules! add_object_field {
     ($userdata: expr, $name: ident, $t: ty, $field_type: ty) => {
         $userdata.add_method_get(&format!("{}", stringify!($name)), wmlua::function1(|obj: &mut $t| -> &$field_type { println!("aaaa"); &obj.$name }) );
-        // $userdata.add_method_set(stringify!($name), wmlua::function2(|obj: &mut $t, val: $field_type| { println!("bbbb {}", val); obj.$name = val; }));
+        $userdata.add_method_set(stringify!($name), wmlua::function2(|obj: &mut $t, val: $field_type| { println!("bbbb {}", val); obj.$name = val; }));
     };
 }

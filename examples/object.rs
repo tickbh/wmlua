@@ -60,7 +60,7 @@ fn main() {
         v = CCCC();
         print(\"kkkk\", v.kk)
         v.kk = \"aa\";
-        -- v.kk = \"a\";
+        print(\"ccccc\", v.kk)
         --print(v.kk(v))
     ";
 

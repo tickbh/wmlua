@@ -108,6 +108,32 @@ impl LuaRead for String {
     }
 }
 
+
+impl LuaPush for &CString {
+    fn push_to_lua(self, lua: *mut lua_State) -> i32 {
+        unsafe { sys::lua_pushstring(lua, self.as_ptr()) };
+        1
+    }
+}
+
+impl LuaPush for CString {
+    fn push_to_lua(self, lua: *mut lua_State) -> i32 {
+        (&self).push_to_lua(lua)
+    }
+}
+
+impl LuaRead for CString {
+    fn lua_read_with_pop_impl(lua: *mut lua_State, index: i32, _pop: i32) -> Option<CString> {
+        let mut size = 0;
+        let data = unsafe { sys::lua_tolstring(lua, index, &mut size) };
+        let bytes = unsafe { std::slice::from_raw_parts(data as *const u8, size) };
+        match std::str::from_utf8(bytes) {
+            Ok(v) => CString::new(v).ok(),
+            Err(_) => None,
+        }
+    }
+}
+
 impl<'s> LuaPush for &'s str {
     fn push_to_lua(self, lua: *mut lua_State) -> i32 {
         if let Some(value) = CString::new(&self[..]).ok() {

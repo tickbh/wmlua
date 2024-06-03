@@ -44,6 +44,9 @@ fn main() {
     let mut object = LuaObject::<Xx>::new(lua.state(), "CCCC");
     object.create();
     add_object_field!(object, kk, Xx, String);
+    // object.def("xxx", wmlua::function1(|obj: &mut Xx| "sss".to_string()));
+
+    object.add_method_get("xxx", wmlua::function1(|obj: &mut Xx| "sss is xxx".to_string()));
     lua.openlibs();
     // let val = "
     //     print(\"ccc\");
@@ -61,6 +64,7 @@ fn main() {
         print(\"kkkk\", v.kk)
         v.kk = \"aa\";
         print(\"ccccc\", v.kk)
+        print(\"vvvvv\", v:xxx())
         --print(v.kk(v))
     ";
 

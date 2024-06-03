@@ -218,11 +218,29 @@ impl Lua {
         LuaRead::lua_read_with_pop(self.state(), -1, 1)
     }
 
+
+    /// Reads the value of a global variable.
+    pub fn queryc<'l, V>(&'l mut self, index: &CString) -> Option<V>
+                         where V: LuaRead
+    {
+        unsafe { lua_getglobal(self.lua, index.as_ptr()); }
+        LuaRead::lua_read_with_pop(self.state(), -1, 1)
+    }
+
+
     /// Modifies the value of a global variable.
     pub fn set<I, V>(&mut self, index: I, value: V)
                          where I: Borrow<str>, for<'a> V: LuaPush
     {
         let index = CString::new(index.borrow()).unwrap();
+        value.push_to_lua(self.state());
+        unsafe { lua_setglobal(self.lua, index.as_ptr()); }
+    }
+
+    /// Modifies the value of a global variable.
+    pub fn setc<I, V>(&mut self, index: CString, value: V)
+                         where for<'a> V: LuaPush
+    {
         value.push_to_lua(self.state());
         unsafe { lua_setglobal(self.lua, index.as_ptr()); }
     }

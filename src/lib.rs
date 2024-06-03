@@ -24,12 +24,14 @@ pub mod tuples;
 pub mod rust_tables;
 mod hotfix;
 mod object;
+mod module;
 
 pub use functions::{function0, function1, function2, function3, function4, function5, function6, function7, function8, function9, function10, Function};
 pub use userdata::{push_userdata, push_lightuserdata, read_userdata};
 pub use lua_tables::LuaTable;
 pub use values::RawString;
 pub use object::LuaObject;
+pub use module::LuaModule;
 
 pub struct Lua {
     lua: *mut lua_State,
@@ -485,3 +487,10 @@ impl Drop for LuaGuard {
     }
 }
 
+#[allow(unused_macros)]
+macro_rules! cstr {
+    ($s:expr) => {
+        concat!($s, "\0") as *const str as *const [::std::os::raw::c_char]
+            as *const ::std::os::raw::c_char
+    };
+}

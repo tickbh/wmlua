@@ -18,42 +18,6 @@ extern "C" fn destructor_wrapper<T>(lua: *mut sys::lua_State) -> libc::c_int {
     }
 }
 
-extern "C" fn constructor_wrapper<T>(lua: *mut sys::lua_State) -> libc::c_int
-where
-    T: Default + Any,
-{
-    let t = T::default();
-    let lua_data_raw =
-        unsafe { sys::lua_newuserdata(lua, mem::size_of::<T>() as libc::size_t) };
-    unsafe {
-        ptr::write(lua_data_raw as *mut _, t);
-    }
-    let typeid = CString::new(format!("{:?}", TypeId::of::<T>())).unwrap();
-    unsafe {
-        sys::lua_getglobal(lua, typeid.as_ptr());
-        sys::lua_setmetatable(lua, -2);
-    }
-    1
-}
-
-// constructor direct create light object,
-// in rust we alloc the memory, avoid copy the memory
-// in lua we get the object, we must free the memory
-extern "C" fn constructor_light_wrapper<T>(lua: *mut sys::lua_State) -> libc::c_int
-where
-    T: Default + Any,
-{
-    let t = Box::into_raw(Box::new(T::default()));
-    push_lightuserdata(unsafe { &mut *t }, lua, |_| {});
-
-    let typeid = CString::new(format!("{:?}", TypeId::of::<T>())).unwrap();
-    unsafe {
-        sys::lua_getglobal(lua, typeid.as_ptr());
-        sys::lua_setmetatable(lua, -2);
-    }
-    1
-}
-
 /// Pushes an object as a user data.
 ///
 /// In Lua, a user data is anything that is not recognized by Lua. When the script attempts to

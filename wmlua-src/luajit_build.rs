@@ -243,7 +243,7 @@ impl Build {
             fs::copy(build_dir.join("src").join(f), include_dir.join(f)).unwrap();
         }
         fs::copy(
-            build_dir.join("src").join("lua51.lib"),
+            build_dir.join("src").join("luajit.lib"),
             lib_dir.join("liblua51.lib"),
         )
         .unwrap();

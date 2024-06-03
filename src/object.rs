@@ -68,22 +68,10 @@ where
             let check_key = check_is_field_key(&key);
             let t = lua_getfield(lua, -1, check_key.as_ptr());
             lua_pop(lua, 1);
-            let is_field = 0 == sys::LUA_TBOOLEAN;
+            let is_field = t == sys::LUA_TBOOLEAN;
             let key = CString::new(key).unwrap();
             let t = lua_getfield(lua, -1, key.as_ptr());
             if t != sys::LUA_TFUNCTION || !is_field {
-                // if t == sys::LUA_TFUNCTION {
-                //     let n = ori_top - 2;
-                //     lua_pushvalue(lua, 1);
-                //     for i in 0..n {
-                //         lua_pushvalue(lua, 2 + i);
-                //     }
-                //     println!("aaaaaaa -1 {} n = {}", lua_type(lua, -1), n);
-                //     println!("aaaaaaa -2 {}", lua_type(lua, -2));
-                //     println!("aaaaaaa -3 {}", lua_type(lua, -3));
-                //     println!("aaaaaaa -4 {}", lua_type(lua, -4));
-                //     lua_call(lua, 1 + n, 1);
-                // }
                 return 1;
             }
             lua_pushvalue(lua, 1);

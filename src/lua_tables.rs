@@ -92,7 +92,7 @@ impl LuaTable {
     }
 
 
-    // /// Inserts an empty table, then loads it.
+    /// Inserts an empty table, then loads it.
     pub fn empty_table<I>(&mut self, index: I) -> LuaTable
                               where I: LuaPush + Clone
     {
@@ -110,7 +110,7 @@ impl LuaTable {
         }
     }
 
-    // /// Obtains or create the metatable of the table.
+    /// Obtains or create the metatable of the table.
     pub fn get_or_create_metatable(&mut self) -> LuaTable {
         let result = unsafe { sys::lua_getmetatable(self.table, self.index) };
 

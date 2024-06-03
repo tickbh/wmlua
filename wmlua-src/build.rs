@@ -282,3 +282,9 @@ fn main() {
     let arti = luajit_build::Build::new().lua52compat(cfg!(feature = "luajit52")).build();
     arti.print_cargo_metadata();
 }
+
+
+#[cfg(not(any(feature = "lua51", feature = "lua52", feature = "lua53", feature = "lua54", feature = "luajit")))]
+fn main() {
+
+}

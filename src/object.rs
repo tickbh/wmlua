@@ -40,33 +40,6 @@ where
     1
 }
 
-extern "C" fn index_metatable<'a, T>(lua: *mut sys::lua_State) -> libc::c_int
-where
-    T: Default + Any,
-    &'a mut T: LuaRead,
-{
-    println!("aaaaaaaaaaaaaaaaaaakkkkkkkkkkkkkkkkkkkkkkkk");
-    if let Some(key) = String::lua_read_with_pop(lua, 2, 0) {
-        let typeid = get_metatable_real_key::<T>();
-        unsafe {
-            sys::lua_getglobal(lua, typeid.as_ptr());
-            let check_key = check_is_field_key(&key);
-            let t = lua_getfield(lua, -1, check_key.as_ptr());
-            lua_pop(lua, 1);
-            let is_field = t == sys::LUA_TBOOLEAN;
-            let t = lua_getfield(lua, -1, key.as_ptr() as *const i8);
-            if t != sys::LUA_TFUNCTION || !is_field {
-                return 1;
-            }
-            lua_pushvalue(lua, 1);
-            lua_call(lua, 1, 1);
-            1
-        }
-    } else {
-        0
-    }
-}
-
 fn get_metatable_base_key<T: Any>() -> CString {
     CString::new(format!("{:?}", TypeId::of::<T>())).unwrap()
 }
@@ -83,6 +56,39 @@ fn check_set_field_key(name: &str) -> CString {
     CString::new(format!("{}__set", name)).unwrap()
 }
 
+extern "C" fn index_metatable<'a, T>(lua: *mut sys::lua_State) -> libc::c_int
+where
+    T: Default + Any,
+    &'a mut T: LuaRead,
+{
+    println!("aaaaaaaaaaaaaaaaaaakkkkkkkkkkkkkkkkkkkkkkkk");
+    if let Some(key) = String::lua_read_with_pop(lua, 2, 0) {
+        let typeid = get_metatable_real_key::<T>();
+        println!("index_metatable typeid = {:?}", typeid);
+        unsafe {
+            sys::lua_getglobal(lua, typeid.as_ptr());
+            let check_key = check_is_field_key(&key);
+
+            // let t = lua_getfield(lua, -1, check_key.as_ptr());
+            // println!("-1 {}", lua_type(lua, -1));
+            // println!("-2 {}", lua_type(lua, -2));
+            // lua_pop(lua, 1);
+            println!("-1 {}", lua_type(lua, -1));
+            println!("-2 {}", lua_type(lua, -2));
+            let is_field = 0 == sys::LUA_TBOOLEAN;
+            let key = CString::new(key).unwrap();
+            let t = lua_getfield(lua, -1, key.as_ptr());
+            if t != sys::LUA_TFUNCTION || !is_field {
+                return 1;
+            }
+            lua_pushvalue(lua, 1);
+            lua_call(lua, 1, 1);
+            1
+        }
+    } else {
+        0
+    }
+}
 
 extern "C" fn newindex_metatable<'a, T>(lua: *mut sys::lua_State) -> libc::c_int
 where
@@ -95,7 +101,8 @@ where
         let typeid = get_metatable_real_key::<T>();
         unsafe {
             sys::lua_getglobal(lua, typeid.as_ptr());
-            let t = lua_getfield(lua, -1, key.as_ptr() as *const i8);
+            let key = CString::new(key).unwrap();
+            let t = lua_getfield(lua, -1, key.as_ptr());
             if t != sys::LUA_TFUNCTION {
                 return 0;
             }
@@ -160,16 +167,14 @@ where
     }
 
     pub fn ensure_matetable(&mut self) -> bool {
-        let typeid = format!("{:?}", TypeId::of::<T>());
+        let typeid = get_metatable_base_key::<T>();
         let mut lua = Lua::from_existing_state(self.lua, false);
-        match lua.query::<LuaTable, _>(typeid.clone()) {
+        match lua.queryc::<LuaTable>(&typeid) {
             Some(_) => {
                 true
             }
             None => unsafe {
                 sys::lua_newtable(self.lua);
-
-                let typeid = format!("{:?}", TypeId::of::<T>());
                 // index "__name" corresponds to the hash of the TypeId of T
                 "__typeid".push_to_lua(self.lua);
                 (&typeid).push_to_lua(self.lua);
@@ -245,6 +250,7 @@ where
         P: LuaPush,
     {
         let typeid = get_metatable_real_key::<T>();
+        println!("typeid = {:?}", typeid);
         let mut lua = Lua::from_existing_state(self.lua, false);
         match lua.queryc::<LuaTable>(&typeid) {
             Some(mut table) => {
@@ -339,3 +345,36 @@ macro_rules! add_object_field {
         $userdata.mark_field(stringify!($name));
     };
 }
+
+#[macro_export]
+macro_rules! object_impl {
+    ($t: ty) => {
+        impl<'a> LuaRead for &'a mut $t {
+            fn lua_read_with_pop_impl(lua: *mut lua_State, index: i32, _pop: i32) -> Option<&'a mut $t> {
+                wmlua::userdata::read_userdata(lua, index)
+            }
+        }
+        
+        impl LuaPush for $t {
+            fn push_to_lua(self, lua: *mut lua_State) -> i32 {
+                unsafe {
+                    let obj = std::boxed::Box::into_raw(std::boxed::Box::new(self));
+                    wmlua::userdata::push_lightuserdata(&mut *obj, lua, |_| {});
+                    let typeid = std::ffi::CString::new(format!("{:?}", std::any::TypeId::of::<$t>())).unwrap();
+                    wmlua::lua_getglobal(lua, typeid.as_ptr());
+                    if wmlua::lua_istable(lua, -1) {
+                        wmlua::lua_setmetatable(lua, -2);
+                    } else {
+                        wmlua::lua_pop(lua, 1);
+                    }
+                    1
+                }
+            }
+        }
+    };
+}
+
+// #[proc_macro_derive(ObjectImpl)]
+// pub fn derive_helper_attr(_item: TokenStream) -> TokenStream {
+//     TokenStream::new()
+// }

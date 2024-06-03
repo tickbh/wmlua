@@ -1,6 +1,6 @@
 use std::{any::TypeId, ffi::CString};
 
-use wmlua::{add_object_field, lua_State, LuaObject, LuaPush, LuaRead};
+use wmlua::{add_object_field, lua_State, object_impl, LuaObject, LuaPush, LuaRead};
 
 struct Xx {
     kk: String,
@@ -13,29 +13,8 @@ impl  Default for Xx {
     }
 }
 
+object_impl!(Xx);
 
-impl<'a> LuaRead for &'a mut Xx {
-    fn lua_read_with_pop_impl(lua: *mut lua_State, index: i32, _pop: i32) -> Option<&'a mut Xx> {
-        wmlua::userdata::read_userdata(lua, index)
-    }
-}
-
-impl LuaPush for Xx {
-    fn push_to_lua(self, lua: *mut lua_State) -> i32 {
-        unsafe {
-            let obj = Box::into_raw(Box::new(self));
-            wmlua::userdata::push_lightuserdata(&mut *obj, lua, |_| {});
-            let typeid = CString::new(format!("{:?}", TypeId::of::<Xx>())).unwrap();
-            wmlua::lua_getglobal(lua, typeid.as_ptr());
-            if wmlua::lua_istable(lua, -1) {
-                wmlua::lua_setmetatable(lua, -2);
-            } else {
-                wmlua::lua_pop(lua, 1);
-            }
-            1
-        }
-    }
-}
 fn main() {
     // let mut xx = Xx { kk: String::new(), nn: String::new() };
     // test!(xx, kk);
@@ -60,7 +39,8 @@ fn main() {
         print(aaa);
         print(\"cccxxxxxxxxxxxxxxx\");
         print(type(CCCC));
-        v = CCCC();
+        local v = CCCC();
+        print(\"vvvvv\", v:xxx())
         print(\"kkkk\", v.kk)
         v.kk = \"aa\";
         print(\"ccccc\", v.kk)

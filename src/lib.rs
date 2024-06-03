@@ -302,6 +302,9 @@ impl Lua {
         let state = self.state();
         unsafe {
             let package = CString::new("package").unwrap();
+            #[cfg(any(feature="lua51", feature="luajit"))]
+            let searchers = CString::new("loaders").unwrap();
+            #[cfg(not(any(feature="lua51", feature="luajit")))]
             let searchers = CString::new("searchers").unwrap();
             lua_getglobal(state, package.as_ptr());
             lua_getfield(state, -1, searchers.as_ptr());
@@ -312,7 +315,7 @@ impl Lua {
                 lua_rawseti(state, -3, i);
                 i = i - 1;
             }
-            lua_rawseti(state, -2, 2);                                        
+            lua_rawseti(state, -2, 2);
             // set loaders into package
             lua_setfield(state, -2, searchers.as_ptr());                               
             lua_pop(state, 1);

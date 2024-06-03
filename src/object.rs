@@ -1,7 +1,7 @@
 use std::{any::{Any, TypeId}, collections::HashMap, ffi::CString, marker::PhantomData, mem, ptr};
 use libc::c_char;
 
-use crate::{lua_State, lua_call, lua_getfield, lua_insert, lua_pop, lua_pushvalue, lua_rotate, lua_type, push_lightuserdata, sys, Lua, LuaPush, LuaRead, LuaTable};
+use crate::{lua_State, lua_call, lua_getfield, lua_gettop, lua_insert, lua_pop, lua_pushvalue, lua_remove, lua_rotate, lua_type, push_lightuserdata, sys, Lua, LuaPush, LuaRead, LuaTable};
 
 // use std::sync::OnceLock;
 // fn hashmap() -> &'static HashMap<&'static str, Box<dyn LuaPush + 'static + Send>> {
@@ -61,24 +61,29 @@ where
     T: Default + Any,
     &'a mut T: LuaRead,
 {
-    println!("aaaaaaaaaaaaaaaaaaakkkkkkkkkkkkkkkkkkkkkkkk");
     if let Some(key) = String::lua_read_with_pop(lua, 2, 0) {
         let typeid = get_metatable_real_key::<T>();
-        println!("index_metatable typeid = {:?}", typeid);
         unsafe {
             sys::lua_getglobal(lua, typeid.as_ptr());
             let check_key = check_is_field_key(&key);
-
-            // let t = lua_getfield(lua, -1, check_key.as_ptr());
-            // println!("-1 {}", lua_type(lua, -1));
-            // println!("-2 {}", lua_type(lua, -2));
-            // lua_pop(lua, 1);
-            println!("-1 {}", lua_type(lua, -1));
-            println!("-2 {}", lua_type(lua, -2));
+            let t = lua_getfield(lua, -1, check_key.as_ptr());
+            lua_pop(lua, 1);
             let is_field = 0 == sys::LUA_TBOOLEAN;
             let key = CString::new(key).unwrap();
             let t = lua_getfield(lua, -1, key.as_ptr());
             if t != sys::LUA_TFUNCTION || !is_field {
+                // if t == sys::LUA_TFUNCTION {
+                //     let n = ori_top - 2;
+                //     lua_pushvalue(lua, 1);
+                //     for i in 0..n {
+                //         lua_pushvalue(lua, 2 + i);
+                //     }
+                //     println!("aaaaaaa -1 {} n = {}", lua_type(lua, -1), n);
+                //     println!("aaaaaaa -2 {}", lua_type(lua, -2));
+                //     println!("aaaaaaa -3 {}", lua_type(lua, -3));
+                //     println!("aaaaaaa -4 {}", lua_type(lua, -4));
+                //     lua_call(lua, 1 + n, 1);
+                // }
                 return 1;
             }
             lua_pushvalue(lua, 1);
@@ -297,15 +302,7 @@ where
         let mut lua = Lua::from_existing_state(self.lua, false);
         match lua.queryc::<LuaTable>(&typeid) {
             Some(mut table) => {
-                match table.query::<LuaTable, _>("__index") {
-                    Some(mut index) => {
-                        index.set(name, param);
-                    }
-                    None => {
-                        // let mut index = table.empty_table("__index");
-                        // index.set(name, param);
-                    }
-                };
+                table.set(name, param);
             }
             None => (),
         };
@@ -317,23 +314,33 @@ where
         name: &str,
         func: extern "C" fn(*mut sys::lua_State) -> libc::c_int,
     ) -> &mut LuaObject<'a, T> {
-        let typeid = format!("{:?}", TypeId::of::<T>());
+        let typeid = get_metatable_real_key::<T>();
         let mut lua = Lua::from_existing_state(self.lua, false);
-        match lua.query::<LuaTable, _>(typeid) {
+        match lua.queryc::<LuaTable>(&typeid) {
             Some(mut table) => {
-                match table.query::<LuaTable, _>("__index") {
-                    Some(mut index) => {
-                        index.register(name, func);
-                    }
-                    None => {
-                        // let mut index = table.empty_table("__index");
-                        // index.register(name, func);
-                    }
-                };
+                table.register(name, func);
             }
             None => (),
         };
         self
+
+        // let typeid = format!("{:?}", TypeId::of::<T>());
+        // let mut lua = Lua::from_existing_state(self.lua, false);
+        // match lua.query::<LuaTable, _>(typeid) {
+        //     Some(mut table) => {
+        //         match table.query::<LuaTable, _>("__index") {
+        //             Some(mut index) => {
+        //                 index.register(name, func);
+        //             }
+        //             None => {
+        //                 // let mut index = table.empty_table("__index");
+        //                 // index.register(name, func);
+        //             }
+        //         };
+        //     }
+        //     None => (),
+        // };
+        // self
     }
 }
 

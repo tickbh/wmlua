@@ -103,7 +103,7 @@ impl LuaRead for String {
         let bytes = unsafe { std::slice::from_raw_parts(data as *const u8, size) };
         match std::str::from_utf8(bytes) {
             Ok(v) => Some(v.to_string()),
-            Err(_) => None,
+            Err(_) => Some("raw binary string...".to_string()),
         }
     }
 }

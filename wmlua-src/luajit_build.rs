@@ -209,7 +209,7 @@ impl Build {
         let out_dir = self.out_dir.as_ref().expect("OUT_DIR not set");
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let source_dir = manifest_dir.join("luajit2");
-        let extras_dir = manifest_dir.join("extras");
+        let extras_dir = source_dir.join("extras");
         let build_dir = out_dir.join("build");
         let lib_dir = out_dir.join("lib");
         let include_dir = out_dir.join("include");
@@ -242,11 +242,11 @@ impl Build {
         for f in &["lauxlib.h", "lua.h", "luaconf.h", "luajit.h", "lualib.h"] {
             fs::copy(build_dir.join("src").join(f), include_dir.join(f)).unwrap();
         }
+
         fs::copy(
-            build_dir.join("src").join("luajit.lib"),
-            lib_dir.join("liblua51.lib"),
-        )
-        .unwrap();
+            build_dir.join("src").join("lua51.lib"),
+            lib_dir.join("lua51.lib"),
+        ).unwrap();
 
         Artifacts {
             lib_dir,

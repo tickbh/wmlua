@@ -1,12 +1,8 @@
 use std::any::{Any, TypeId};
-use std::boxed::Box;
-use std::ffi::CString;
-use std::marker::PhantomData;
 use std::mem;
 use std::ptr;
 
-use libc::{self, c_char};
-use crate::{lua_State, lua_getmetatable, sys, Lua, LuaPush, LuaRead, LuaTable};
+use crate::{sys, LuaPush, LuaRead, LuaTable};
 
 // Called when an object inside Lua is being dropped.
 #[inline]

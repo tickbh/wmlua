@@ -1,4 +1,5 @@
 
+#[macro_use]
 pub mod sys;
 pub use sys::*;
 
@@ -82,8 +83,7 @@ macro_rules! impl_exec_func {
             let func_name = CString::new(func_name.borrow()).unwrap();
             unsafe {
                 let state = self.state();
-                let error = CString::new("error_handle").unwrap();
-                lua_getglobal(state, error.as_ptr());
+                lua_getglobal(state, cstr!("error_handle"));
                 lua_getglobal(state, func_name.as_ptr());
 
                 let mut index = 0;
@@ -111,8 +111,7 @@ macro_rules! impl_read_func {
             let func_name = CString::new(func_name.borrow()).unwrap();
             unsafe {
                 let state = self.state();
-                let error = CString::new("error_handle").unwrap();
-                lua_getglobal(state, error.as_ptr());
+                lua_getglobal(state, cstr!("error_handle"));
                 lua_getglobal(state, func_name.as_ptr());
 
                 let mut index = 0;
@@ -253,8 +252,7 @@ impl Lua {
         let index = CString::new(index.borrow()).unwrap();
         unsafe {
             let state = self.state();
-            let error = CString::new("error_handle").unwrap();
-            lua_getglobal(state, error.as_ptr());
+            lua_getglobal(state, cstr!("error_handle"));
             luaL_loadstring(state, index.as_ptr());
             let success = lua_pcall(state, 0, 1, -2);
             if success != 0 {
@@ -272,11 +270,10 @@ impl Lua {
         let index = CString::new(index.borrow()).unwrap();
         unsafe {
             let state = self.state();
-            let error = CString::new("error_handle").unwrap();
             let top = lua_gettop(state);
             lua_getglobal(state, index.as_ptr());
             lua_insert(state, -top - 1);
-            lua_getglobal(state, error.as_ptr());
+            lua_getglobal(state, cstr!("error_handle"));
             lua_insert(state, -top - 2);
             let success = lua_pcall(state, top, 1, -top-2);
             if success != 0 {
@@ -303,13 +300,13 @@ impl Lua {
     pub fn add_lualoader(&mut self, func : extern "C" fn(*mut lua_State) -> libc::c_int) -> i32 {
         let state = self.state();
         unsafe {
-            let package = CString::new("package").unwrap();
+            let package = cstr!("package");
             #[cfg(any(feature="lua51", feature="luajit"))]
-            let searchers = CString::new("loaders").unwrap();
+            let searchers = cstr!("loaders");
             #[cfg(not(any(feature="lua51", feature="luajit")))]
-            let searchers = CString::new("searchers").unwrap();
-            lua_getglobal(state, package.as_ptr());
-            lua_getfield(state, -1, searchers.as_ptr());
+            let searchers = cstr!("searchers");
+            lua_getglobal(state, package);
+            lua_getfield(state, -1, searchers);
             lua_pushcfunction(state, func);
             let mut i = (lua_rawlen(state, -2) + 1) as lua_Integer;
             while i > 2 {
@@ -319,7 +316,7 @@ impl Lua {
             }
             lua_rawseti(state, -2, 2);
             // set loaders into package
-            lua_setfield(state, -2, searchers.as_ptr());                               
+            lua_setfield(state, -2, searchers);                               
             lua_pop(state, 1);
         }
         0

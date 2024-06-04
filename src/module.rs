@@ -17,7 +17,7 @@ impl LuaModule {
     pub fn ensure(&self) -> LuaTable {
         let mut lua = Lua::from_existing_state(self.lua, false);
         match lua.query::<LuaTable, _>(self.name) {
-            Some(mut table) => {
+            Some(table) => {
                 table
             }
             None => {

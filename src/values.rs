@@ -83,8 +83,7 @@ impl LuaPush for &String {
             unsafe { sys::lua_pushstring(lua, value.as_ptr()) };
             1
         } else {
-            let value = CString::new(&"UNVAILED STRING"[..]).unwrap();
-            unsafe { sys::lua_pushstring(lua, value.as_ptr()) };
+            unsafe { sys::lua_pushstring(lua, cstr!("UNVAILED STRING")) };
             1
         }
     }
@@ -140,8 +139,7 @@ impl<'s> LuaPush for &'s str {
             unsafe { sys::lua_pushstring(lua, value.as_ptr()) };
             1
         } else {
-            let value = CString::new(&"UNVAILED STRING"[..]).unwrap();
-            unsafe { sys::lua_pushstring(lua, value.as_ptr()) };
+            unsafe { sys::lua_pushstring(lua, cstr!("UNVAILED STRING")) };
             1
         }
     }

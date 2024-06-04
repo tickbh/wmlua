@@ -1,16 +1,7 @@
-use std::{any::{Any, TypeId}, collections::HashMap, ffi::CString, marker::PhantomData, mem, ptr};
+use std::{any::{Any, TypeId}, ffi::CString, marker::PhantomData, mem, ptr};
 use libc::c_char;
 
-use crate::{lua_State, lua_call, lua_getfield, lua_gettop, lua_insert, lua_pop, lua_pushvalue, lua_remove, lua_rotate, lua_type, push_lightuserdata, sys, Lua, LuaPush, LuaRead, LuaTable};
-
-// use std::sync::OnceLock;
-// fn hashmap() -> &'static HashMap<&'static str, Box<dyn LuaPush + 'static + Send>> {
-//     static HASHMAP: OnceLock<HashMap<&'static str, Box<dyn LuaPush + 'static + Send>>> = OnceLock::new();
-//     HASHMAP.get_or_init(|| {
-//         let mut m = HashMap::new();
-//         m
-//     })
-// }
+use crate::{lua_State, lua_call, lua_getfield, lua_pop, lua_pushvalue, push_lightuserdata, sys, Lua, LuaPush, LuaRead, LuaTable};
 
 // Called when an object inside Lua is being dropped.
 #[inline]
@@ -212,28 +203,6 @@ where
                 sys::lua_pushcfunction(self.lua, constructor_wrapper::<T>);
             }
             sys::lua_setglobal(self.lua, name.as_ptr());
-
-            // sys::lua_getglobal(self.lua, name.as_ptr());
-            // if !sys::lua_istable(self.lua, -1) {
-            //     sys::lua_newtable(self.lua);
-            //     sys::lua_setglobal(self.lua, name.as_ptr());
-            //     sys::lua_getglobal(self.lua, name.as_ptr());
-            // }
-            // if sys::lua_istable(self.lua, -1) {
-            //     sys::lua_newtable(self.lua);
-            //     "__call".push_to_lua(self.lua);
-
-            //     if self.light {
-            //         sys::lua_pushcfunction(self.lua, constructor_light_wrapper::<T>);
-            //         sys::lua_settable(self.lua, -3);
-            //     } else {
-            //         sys::lua_pushcfunction(self.lua, constructor_wrapper::<T>);
-            //         sys::lua_settable(self.lua, -3);
-            //     }
-
-            //     sys::lua_setmetatable(self.lua, -2);
-            // }
-            // sys::lua_pop(self.lua, 1);
         }
         self
     }
@@ -243,7 +212,6 @@ where
         P: LuaPush,
     {
         let typeid = get_metatable_real_key::<T>();
-        println!("typeid = {:?}", typeid);
         let mut lua = Lua::from_existing_state(self.lua, false);
         match lua.queryc::<LuaTable>(&typeid) {
             Some(mut table) => {
@@ -311,24 +279,6 @@ where
             None => (),
         };
         self
-
-        // let typeid = format!("{:?}", TypeId::of::<T>());
-        // let mut lua = Lua::from_existing_state(self.lua, false);
-        // match lua.query::<LuaTable, _>(typeid) {
-        //     Some(mut table) => {
-        //         match table.query::<LuaTable, _>("__index") {
-        //             Some(mut index) => {
-        //                 index.register(name, func);
-        //             }
-        //             None => {
-        //                 // let mut index = table.empty_table("__index");
-        //                 // index.register(name, func);
-        //             }
-        //         };
-        //     }
-        //     None => (),
-        // };
-        // self
     }
 }
 
@@ -368,8 +318,3 @@ macro_rules! object_impl {
         }
     };
 }
-
-// #[proc_macro_derive(ObjectImpl)]
-// pub fn derive_helper_attr(_item: TokenStream) -> TokenStream {
-//     TokenStream::new()
-// }

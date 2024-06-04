@@ -7,7 +7,7 @@
 use std::os::raw::c_int;
 
 #[macro_use]
-mod macros;
+pub mod macros;
 
 
 #[cfg(any(feature = "lua54", feature = "lua53", feature = "lua52"))]

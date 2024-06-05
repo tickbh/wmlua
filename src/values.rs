@@ -97,6 +97,11 @@ impl LuaPush for String {
 
 impl LuaRead for String {
     fn lua_read_with_pop_impl(lua: *mut lua_State, index: i32, _pop: i32) -> Option<String> {
+        if unsafe {
+            sys::lua_isstring(lua, index) == 0
+        } {
+            return None;
+        }
         let mut size = 0;
         let data = unsafe { sys::lua_tolstring(lua, index, &mut size) };
         let bytes = unsafe { std::slice::from_raw_parts(data as *const u8, size) };

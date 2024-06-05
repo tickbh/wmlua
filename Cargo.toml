@@ -1,19 +1,18 @@
 [package]
 name = "wmlua"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["tickbh <tickdream125@hotmail.com>"]
 description = "wmlua"
 repository = "https://github.com/tickbh/wmlua"
 license = "Apache-2.0"
-keywords = ["wmlua"]
+keywords = ["wmlua", "lua54", "lua51", "luajit"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 
 [dependencies]
 libc = "0.2.1"
-
-ffi = { package = "wmlua-src", version = "0.1.0", path = "wmlua-src" }
+ffi = { package = "wmlua-src", version = "0.1.1", path = "wmlua-src" }
 
 [workspace]
 members = ["wmlua-src"]

@@ -10,7 +10,7 @@ Add this to the `Cargo.toml` file of your project
 
 ```toml
 [dependencies]
-wmlua = "0.1.0"
+wmlua = { version = "0.1.0", features = ["lua54"] }
 ```
 
 ### How to use it?
